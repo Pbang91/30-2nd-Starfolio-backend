@@ -47,6 +47,8 @@
       
       유강호 - 소셜로그인, 마이페이지
       
+      [FRONTEND GITHUB](https://github.com/wecode-bootcamp-korea/30-2nd-Starfolio-frontend)
+      
   * #### BACKEND
       
       박건규 - 모델링, 회원가입&소셜로그인, 로그인 데코레이터, 숙소 Detail API, users 테스트코드 작성, 숙소 Detail 테스트코드 작성
