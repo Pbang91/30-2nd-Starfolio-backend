@@ -71,7 +71,7 @@
     <a href="#"><img src="https://img.shields.io/badge/Django-0B4B33?style=plastic&logo=django&logoColor=white"/></a>
     <a href="#"><img src="https://img.shields.io/badge/MySQL-005E85?style=plastic&logo=mysql&logoColor=white"/></a>
     <a href="#"><img src="https://img.shields.io/badge/AWS-FF9701?style=plastic&logo=aws&logoColor=white"/></a>
-    <a href="#"><img src="https://img.shields.io/badge/docker-0067a3?style=plastic&logo=aws&logoColor=blue"/></a>
+    <a href="#"><img src="https://img.shields.io/badge/docker-0040FF?style=plastic&logo=docker&logoColor=white"/></a>
     <a href="#"><img src="https://img.shields.io/badge/postman-F76934?style=plastic&logo=postman&logoColor=white"/></a>
     
   * #### COMMUNICATION
@@ -112,7 +112,7 @@
 ---
 # 시연영상
 
-추후 추가 예정
+[starfolio](https://www.youtube.com/watch?v=BfIAwz-oeyc)
 
 <br>
 
