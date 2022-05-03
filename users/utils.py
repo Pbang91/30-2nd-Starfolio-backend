@@ -23,6 +23,9 @@ def login_decorator(func):
 
         except jwt.exceptions.DecodeError:
             return JsonResponse({"message" : "INVALID_TOKEN"}, status = 400)
+
+        except jwt.exceptions.ExpiredSignatureError:
+            return JsonResponse({"message" : "EXPIRED_TOKEN"}, status = 401)
         
         except KeyError:
            return JsonResponse({"message" : "KEY_ERROR"}, status = 400)
