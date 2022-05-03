@@ -45,7 +45,7 @@ class KakaoLogInView(View):
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
 
 class RenewalingToken(View):
-    def post(self, request):
+    def get(self, request):
         try:
             refresh_token  = request.headers.get('Authorization')
 
@@ -54,7 +54,7 @@ class RenewalingToken(View):
                 
             payload = jwt.decode(refresh_token, SECRET_KEY, ALGORITHM)
             user_id = payload['id']
-            user = User.objects.get(id = user_id, refresh_token = refresh_token)
+            user    = User.objects.get(id = user_id, refresh_token = refresh_token)
 
             if user:
                 with transaction.atomic():
@@ -76,5 +76,8 @@ class RenewalingToken(View):
         
         except User.DoesNotExist:
             return JsonResponse({"message" : "UNAUTHORIZED_USER"}, status = 401)
+        
+        except transaction.TransactionManagementError:
+            return JsonResponse({'message' : 'TRANSACTION_ERROR'}, status = 400)
 
         
