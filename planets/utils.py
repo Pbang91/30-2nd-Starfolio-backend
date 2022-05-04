@@ -5,11 +5,10 @@ from datetime               import datetime, timedelta
 from bookings.models        import Booking
 
 def check_valid_date(accomodation_information, check_in, check_out, chosen_accomodation):
-    unavailable_bookings = Booking.objects.filter(
-        accomodation     = chosen_accomodation,
-        start_date__lte  = datetime.today() + timedelta(days=186),
-        end_date__gte    = datetime.today()
-    )
+    unavailable_bookings = Booking.objects.filter(accomodation    = chosen_accomodation,
+                                                  start_date__lte = datetime.today() + timedelta(days=186),
+                                                  end_date__gte   = datetime.today()
+                                                )
 
     invalid_dates = []
 
