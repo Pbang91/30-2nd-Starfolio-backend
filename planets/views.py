@@ -2,8 +2,8 @@ from django.core.exceptions import ValidationError
 from django.http            import JsonResponse
 from django.views           import View
 from django.db.models       import Q
-from datetime               import datetime, timedelta
 
+from datetime               import datetime, timedelta
 
 from planets.models         import Planet, Accomodation, AccomodationImage
 from .utils                 import check_valid_date
