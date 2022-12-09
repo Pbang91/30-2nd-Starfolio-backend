@@ -44,25 +44,21 @@ class KakaoLogInView(APIView):
                     defaults = {'name' : name, 'email' : email}
             )
 
-            access_token  = jwt.encode({'id' : user.id, 'exp' : datetime.utcnow() + timedelta(days=2)}, SECRET_KEY, ALGORITHM)
             refresh_token = jwt.encode({'id' : user.id, 'exp' : datetime.utcnow() + timedelta(weeks=2)}, SECRET_KEY, ALGORITHM)
-            
-            if is_created:
-                user.refresh_token = refresh_token
-                user.save()
 
             status_code = status.HTTP_201_CREATED if is_created else status.HTTP_200_OK
             
             data = {
-                'access_token'  : access_token,
                 'refresh_token' : refresh_token,
                 'name'          : name,
                 'email'         : email
             }
-
-            serializer = KakaoLogInSerializer(data=data)
+            
+            serializer = KakaoLogInSerializer(user, data=data, partial=True)
 
             if serializer.is_valid():
+                serializer.save()
+                
                 return Response(serializer.data, status=status_code)
             
             else:
@@ -83,6 +79,7 @@ class LogOutView(APIView):
             serializer = LogOutSerializer(user, data=data, partial=True)
 
             if serializer.is_valid():
+                serializer.save()
                 return Response(data=serializer.data, status=status.HTTP_200_OK)
             
             else:
@@ -104,19 +101,20 @@ class RenewalingToken(APIView):
             
             user = request.user
 
-            if user:
+            if user.refresh_token == refresh_token:
                 refresh_token = jwt.encode({'id' : user.id, 'exp' : datetime.utcnow() + timedelta(weeks=2)}, SECRET_KEY, ALGORITHM)
                 
                 data = {"refresh_token" : refresh_token}
-
-                serializer = RenewalingTokenSerializer(user, data=data, partial=True)
-
+            
+                serializer = RenewalingTokenSerializer(user, data=data)
+                
                 if serializer.is_valid():
+                    serializer.save()
                     return Response(data=serializer.data, status=status.HTTP_200_OK)
                 
                 else:
                     return Response(serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+                
             else:
                 raise User.DoesNotExist
         
