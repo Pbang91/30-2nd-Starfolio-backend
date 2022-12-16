@@ -1,72 +1,105 @@
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
+
 import jwt
+import bcrypt
 
-from django.test        import TestCase, Client
-from unittest.mock      import MagicMock, patch
+from django.urls import reverse
 
-from .models            import User
+from rest_framework.test import APITestCase, APIClient
+
 from starfolio.settings import SECRET_KEY, ALGORITHM
 
-class KakaoLoginTest(TestCase):
-    def setUp(self):
-        User.objects.create(
-            id         = 1,
-            name       = '박건규',
-            password   = '',
-            email      = '가짜이메일@가짜.com',
-            kakao_id   = 1234567891111
+from .models import User
+
+class KakaoLoginTest(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.url = reverse('kakao_login')
+        
+        password = bcrypt.hashpw("test1234!".encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
+        
+        cls.user = User.objects.create(
+                id = 1,
+                name = 'testman',
+                password  = password,
+                email = 'test@test.com',
+                kakao_id = 1234567891111
         )
 
-    def tearDown(self):
-        User.objects.all().delete()
-    
+        cls.f_client = APIClient()
+
+        token = jwt.encode({'id' : cls.user.id, 'exp' : datetime.utcnow() + timedelta(days=2)}, SECRET_KEY, ALGORITHM)
+
+        cls.f_client.credentials(HTTP_AUTHORIZATION=token)
+
     @patch('users.views.requests')
-    def test_success_to_login_when_kakao_token_exist_user(self, moked_requset):
-        client       = Client()
-        
+    def test_success_user_login_with_kakao_exists_user(self, moked_request):
         class MockedResponse:
             def json(self):
                 return {
                     'id' : 1234567891111,
                     'kakao_account' : {
-                        'email' : '가짜이메일@가짜.com'
+                        'email' : 'test@test.com'
                     },
                     'properties' : {
-                        'nickname' : '박건규'
+                        'nickname' : 'testman'
                     }
                 }
-
-        moked_requset.get = MagicMock(return_value = MockedResponse())
-        headers           = {'HTTP_Authorization' : 'fake_token'}
-        response          = client.get("/users/kakao-login", **headers)
+        
+        moked_request.get = MagicMock(return_value = MockedResponse())
+        
+        response = self.f_client.get(self.url)
+        
+        access_token  = response.json()['access_token']
+        refresh_token = response.json()['refresh_token']
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {   
+                'access_token'  : access_token,
+                'refresh_token' : refresh_token,
+                'name'          : 'testman',
+                'email'         : 'test@test.com'
+            }
+        )
     
     @patch('users.views.requests')
-    def test_success_to_login_when_kakao_token_new_user(self, moked_requset):
-        client       = Client()
-
+    def test_success_user_login_with_kakao_new_user(self, moked_requset):
         class MockedResponse:
             def json(self):
                 return {
                     'id' : 15155151515,
                     'kakao_account' : {
-                        'email' : '가짜이메일2@가짜2.com'
+                        'email' : 'newtest@test.com'
                     },
                     'properties' : {
-                        'nickname' : '가짜박건규'
+                        'nickname' : 'new-testman'
                     }
                 }
         
         moked_requset.get = MagicMock(return_value = MockedResponse())
-        headers           = {'HTTP_Authorization' : 'fake_kkkktoken'}
-        response          = client.get("/users/kakao-login", **headers)
+        
+        headers  = {'HTTP_Authorization' : 'fake_kkkktoken'}
+        response = self.client.get(self.url, **headers, content_type='application/json')
 
-        self.assertEqual(response.status_code, 200)
+        access_token  = response.json()['access_token']
+        refresh_token = response.json()['refresh_token']
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            response.json(),
+            {   
+                'access_token'  : access_token,
+                'refresh_token' : refresh_token,
+                'name'          : 'new-testman',
+                'email'         : 'newtest@test.com'
+            }
+        )
 
     @patch('users.views.requests')
-    def test_fail_to_login_when_invalid_token_in_headers(self, moked_requset):
-        client = Client()
-
+    def test_fail_user_login_due_to_invalid_token(self, moked_requset):
         class MockedResponse:
             def json(self):
                 return {
@@ -74,40 +107,47 @@ class KakaoLoginTest(TestCase):
                 }
         
         moked_requset.get = MagicMock(return_value = MockedResponse())
-        headers           = {'HTTP_Authorization' : 'invalidtoken123123'}
-        response          = client.get("/users/kakao-login", headers)
+        
+        headers  = {'HTTP_Authorization' : 'Invalid Token'}
+        response = self.client.get(self.url, **headers)
 
         self.assertEqual(response.status_code, 401)
-
         self.assertEqual(
             response.json(),
             {
-                'message' : 'INVALID_TOKEN'
+                'message' : 'Unauthorized User'
             }
         )
 
-    @patch('users.views.requests')
-    def test_fail_to_login_when_invalid_response_in_kakao(self, moked_requset):
-        client = Client()
-
-        class MockedResponse:
-            def json(self):
-                return {
-                    'id' : 15155151515,
-                    'properties' : {
-                        'nickname' : '가짜박건규'
-                    }
-                }
+class LogOutTest(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.url = reverse('logout')
         
-        moked_requset.get = MagicMock(return_value = MockedResponse())
-        headers           = {'HTTP_Authorization' : 'invalidtoken123123'}
-        response          = client.get("/users/kakao-login", headers)
+        password = bcrypt.hashpw("test1234!".encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
+        
+        cls.user = User.objects.create(
+                id = 1,
+                name = 'testman',
+                password  = password,
+                email = 'test@test.com',
+                kakao_id = 1234567891111
+        )
 
-        self.assertEqual(response.status_code, 400)
+        cls.f_client = APIClient()
 
+        token = jwt.encode({'id' : cls.user.id, 'exp' : datetime.utcnow() + timedelta(days=2)}, SECRET_KEY, ALGORITHM)
+
+        cls.f_client.credentials(HTTP_AUTHORIZATION=token)
+    
+    def test_success_user_logout(self):
+        response = self.f_client.get(self.url)
+        
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.json(),
             {
-                'message' : 'KEY_ERROR'
+                'access_token' : None,
+                'refresh_token' : None
             }
         )

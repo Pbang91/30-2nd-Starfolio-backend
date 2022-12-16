@@ -22,7 +22,7 @@ def login_decorator(func):
                 raise jwt.exceptions.DecodeError
 
             request.user = User.objects.get(id=user_id)
-
+            
             return func(self, request, *args, **kwargs)
         
         except User.DoesNotExist:
