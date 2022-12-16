@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'wishlists',
     'bookings',
     'debug_toolbar',
+    'rest_framework',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
