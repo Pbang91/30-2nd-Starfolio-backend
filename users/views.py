@@ -73,13 +73,13 @@ class LogOutView(APIView):
     def get(self, request):
         try:
             user = request.user
-
             data = {'refresh_token' : None}
 
             serializer = LogOutSerializer(user, data=data, partial=True)
 
             if serializer.is_valid():
                 serializer.save()
+                
                 return Response(data=serializer.data, status=status.HTTP_200_OK)
             
             else:
@@ -110,6 +110,7 @@ class RenewalingToken(APIView):
                 
                 if serializer.is_valid():
                     serializer.save()
+                    
                     return Response(data=serializer.data, status=status.HTTP_200_OK)
                 
                 else:
