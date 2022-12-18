@@ -97,7 +97,7 @@ class RenewalingToken(APIView):
             refresh_token = request.data.get('refresh_token')
 
             if not refresh_token:
-                return JsonResponse(data={'message' : 'Unauthorized User'}, status=status.HTTP_401_UNAUTHORIZED)
+                return JsonResponse(data={'message' : 'Invalid Data'}, status=status.HTTP_400_BAD_REQUEST)
             
             user = request.user
 
@@ -120,11 +120,9 @@ class RenewalingToken(APIView):
                 raise User.DoesNotExist
         
         except KeyError:
-            print('keyerror')
             return JsonResponse(data={'message' : 'Invalid User'}, status=status.HTTP_400_BAD_REQUEST)
         
         except User.DoesNotExist:
-            print('user 없음')
             return JsonResponse(data={"message" : "Invalid User"}, status=status.HTTP_400_BAD_REQUEST)
 
         except jwt.exceptions.DecodeError:
