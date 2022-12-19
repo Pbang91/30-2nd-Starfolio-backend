@@ -1,8 +1,8 @@
 from django.urls import path
 
-from planets.views import PlanetListView, PlanetDetailView
+from planets.views import PlanetsView, PlanetDetailView
 
 urlpatterns = [
-    path('', PlanetListView.as_view()),
-    path('/planet/<int:planet_id>/accomodation/<int:accomodation_id>', PlanetDetailView.as_view())
+    path('', PlanetsView.as_view()),
+    path('/<int:planet_id>/accomodation/<int:accomodation_id>', PlanetDetailView.as_view())
 ]

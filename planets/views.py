@@ -1,14 +1,19 @@
+from datetime import datetime, timedelta
+
+from django.http import JsonResponse
+from django.db.models import Q
 from django.core.exceptions import ValidationError
-from django.http            import JsonResponse
-from django.views           import View
-from django.db.models       import Q
 
-from datetime               import datetime, timedelta
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
 
-from planets.models         import Planet, Accomodation, AccomodationImage
-from .utils                 import check_valid_date
+from planets.models import Planet, Accomodation
 
-class PlanetListView(View):
+from .utils import check_valid_date
+from .serializer import PlanetSerializer, PlanetDetailSerializer
+
+class PlanetsView(APIView):
     def get(self, request):
         check_in  = request.GET.get('check-in')
         check_out = request.GET.get('check-out')
@@ -25,18 +30,13 @@ class PlanetListView(View):
             'max-price' : 'accomodation__price__lte'
         }
 
-        filter_set = {
-            filter_options.get(key): value\
-                for (key, value) in request.GET.items()\
-                     if filter_options.get(key)
-        }
+        filter_set = {filter_options.get(key) : value for key, value in request.GET.items() if filter_options.get(key)}
 
         booking = Q()
 
         if check_in and check_out:
-
             if check_in >= check_out:
-                return JsonResponse({'message':'INVALID_DATE'}, status=400)
+                return JsonResponse({'message':'Invalid Date'}, status=status.HTTP_400_BAD_REQUEST)
 
             check_in  = datetime.strptime(check_in, '%Y-%m-%d')
             check_out = datetime.strptime(check_out, '%Y-%m-%d')
@@ -52,55 +52,32 @@ class PlanetListView(View):
         }
 
         planets = Planet.objects.prefetch_related('accomodation_set')\
-                        .prefetch_related('booking_set')\
-                        .filter(**filter_set)\
-                        .exclude(booking)\
-                        .order_by(sort_type[sort])[offset:offset+limit]
+                                .prefetch_related('booking_set')\
+                                .filter(**filter_set)\
+                                .exclude(booking)\
+                                .order_by(sort_type[sort])[offset:offset+limit]
 
-        planets_list = [{
-            'id'                : planet.id,
-            'name'              : planet.name,
-            'thumbnail'         : planet.thumbnail,
-            'galaxy'            : planet.galaxy.name,
-            'theme'             : planet.theme.name,
-            'image'             : [image.image_url for image in planet.planetimage_set.all()],
-            'accomodation_info' : [{
-                'min_of_people' : accomodation.min_of_people,
-                'max_of_people' : accomodation.max_of_people,
-                'price'         : accomodation.price
-            } for accomodation in planet.accomodation_set.all()]
-        } for planet in planets]
+        serializer = PlanetSerializer(planets, many=True)
 
-        return JsonResponse({'planets_list':planets_list}, status=200)
 
-class PlanetDetailView(View):
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+class PlanetDetailView(APIView):
     def get(self, request, planet_id, accomodation_id):
         try:
             check_in  = request.GET.get('check-in')
             check_out = request.GET.get('check-out')
 
-            chosen_accomodation        = Accomodation.objects.get(id = accomodation_id, planet_id = planet_id)
-            chosen_accomodation_images = AccomodationImage.objects.select_related('accomodation__planet').filter(accomodation = chosen_accomodation)
+            accomodation = Accomodation.objects.prefetch_related('accomodationimage_set').select_related('planet').get(id=accomodation_id, planet_id=planet_id)
 
-            accomodation_information = {
-                'id'            : chosen_accomodation.id,
-                'name'          : chosen_accomodation.name,
-                'stays'         : None,
-                'price'         : None,
-                'images'        : [accomodation_image.image_url for accomodation_image in chosen_accomodation_images],
-                'description'   : chosen_accomodation.description,
-                'min_of_people' : chosen_accomodation.min_of_people,
-                'max_of_people' : chosen_accomodation.max_of_people,
-                'num_of_bed'    : chosen_accomodation.num_of_bed,
-                'invalid_dates' : None
-            }
+            serializer = PlanetDetailSerializer(accomodation)
 
-            accomodation_information = check_valid_date(accomodation_information, check_in, check_out, chosen_accomodation)
+            new_serializer_data = check_valid_date(check_in, check_out, serializer.data)
 
-            return JsonResponse({'result' : accomodation_information}, status = 200)
+            return Response(data=new_serializer_data, status=status.HTTP_200_OK)
 
         except Accomodation.DoesNotExist:
-            return JsonResponse({'message' : 'INVALID_ACCOMODATION'}, status = 400)
+            return JsonResponse({'message' : 'Invalid Accomodation'}, status=status.HTTP_400_BAD_REQUEST)
         
         except ValidationError as error:
-            return JsonResponse({'message' : error.message}, status = 400)
+            return JsonResponse({'message' : error.message}, status=status.HTTP_400_BAD_REQUEST)
