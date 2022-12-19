@@ -165,7 +165,7 @@ class LogOutTest(APITestCase):
         )
 
 class RenewalingTokenTest(APITestCase):
-    maxDiff: int = None
+    maxDiff = None
 
     @classmethod
     def setUpTestData(cls):

@@ -1,3 +1,5 @@
+import os
+
 from django.urls import path, include, re_path
 
 from rest_framework.permissions import AllowAny
@@ -8,7 +10,7 @@ from drf_yasg.views import get_schema_view
 import starfolio.settings as settings
 
 schema_view = get_schema_view(
-   openapi.Info(
+   info = openapi.Info(
       title="Snippets API",
       default_version='v1',
       description="Test description",
@@ -20,11 +22,10 @@ schema_view = get_schema_view(
    permission_classes=(AllowAny,),
 )
 
-
 urlpatterns = [
-    path('api/planets', include('planets.urls')),
     path('api/users', include('users.urls')),
-    path('api/bookings', include('bookings.urls')),
+    path('api/planets', include('planets.urls')),
+    path('api/bookings', include('bookings.urls')), 
     path('api/wishlists', include('wishlists.urls'))
 ]
 

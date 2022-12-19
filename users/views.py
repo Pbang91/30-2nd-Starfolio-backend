@@ -5,8 +5,8 @@ import jwt
 
 from django.http import JsonResponse
 
-from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
@@ -68,8 +68,8 @@ class KakaoLogInView(APIView):
             return JsonResponse(data={'message' : 'Invalid User'}, status=status.HTTP_400_BAD_REQUEST)
 
 class LogOutView(APIView):
-    @login_decorator
     @swagger_auto_schema(responses={200 : LogOutSerializer, 400 : "Invalid User", 401 : "Unauthorized User", 500 : "Internal Server Error"}, tags=["User"], operation_summary="Renewal Refresh Token")
+    @login_decorator
     def get(self, request):
         try:
             user = request.user
@@ -90,8 +90,8 @@ class LogOutView(APIView):
 
 
 class RenewalingToken(APIView):
+    @swagger_auto_schema(responses={201 : RenewalingTokenSerializer, 400 : "Invalid User", 401 : "Unauthorized User", 500 : "Internal Server Error"}, tags=["User"], operation_summary="Logout User")
     @login_decorator
-    @swagger_auto_schema(responses={201 : RenewalingTokenSerializer, 400 : "Invalid User", 401 : "Unauthorized User", 500 : "Internal Server Error"}, tags=["User"], operation_summary="Renewal Refresh Token")
     def post(self, request):
         try:
             refresh_token = request.data.get('refresh_token')
