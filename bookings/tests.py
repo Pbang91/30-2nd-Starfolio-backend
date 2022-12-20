@@ -1,48 +1,63 @@
-import jwt, json
+import json
+from datetime import datetime, timedelta
 
-from django.test import TestCase, Client
+import jwt
+import bcrypt
 
-from my_settings     import SECRET_KEY, ALGORITHM
-from planets.models  import Planet, Accomodation, Galaxy, PlanetTheme
+from rest_framework.test import APITestCase, APIClient
+
+from users.models import User
+from planets.models import Planet, Accomodation, Galaxy, PlanetTheme
 from bookings.models import BookingStatus, Booking
-from users.models    import User
+from starfolio.settings import SECRET_KEY, ALGORITHM
 
-class BookingTest(TestCase):
+class BookingTest(APITestCase):
+    maxDiff = None
+
     @classmethod
-    def setUpTestData(cls):	
-        User.objects.create(
+    def setUpTestData(cls):
+        password = bcrypt.hashpw("test1234!".encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
+        
+        cls.user = User.objects.create(
             id       = 1,
-            name     = '가람',
-            email    = 'kimkrh@naver.com',
-            kakao_id = 1234
+            name     = 'testman',
+            password = password,
+            email    = 'test@test.com',
+            kakao_id = 1234567891111
         )
+
+        cls.f_client = APIClient()
+
+        token = jwt.encode({'id' : cls.user.id, 'exp' : datetime.utcnow() + timedelta(days=2)}, SECRET_KEY, ALGORITHM)
+
+        cls.f_client.credentials(HTTP_AUTHORIZATION=token)
 
         Galaxy.objects.create(
             id   = 1,
-            name = '가람우주'
+            name = '우리은하'
         )
 
         PlanetTheme.objects.create(
             id   = 1,
-            name = '무한테스트'
+            name = '불'
         )
 
         Planet.objects.create(
             id        = 1,
-            name      = '가람별',
-            thumbnail = 'http://urls',
+            name      = '멋진행성',
+            thumbnail = 'https://wonderful.img/test1.jpg',
             theme_id  = 1,
             galaxy_id = 1
         )
 
         Accomodation.objects.create(
             id            = 1,
-            name          = '가람의호텔',
-            price         = 1000,
+            name          = '멋진숙소',
+            price         = 10000,
             min_of_people = 2,
             max_of_people = 4,
             num_of_bed    = 2,
-            description   = "편안합니다.",
+            description   = "멋져요.",
             planet_id     = 1
         )
 
@@ -54,64 +69,200 @@ class BookingTest(TestCase):
         Booking.objects.create(
             id                 = 1,
             booking_number     = 5678,
-            start_date         = '2022-03-20',
-            end_date           = '2022-03-22',
+            start_date         = '2022-12-01',
+            end_date           = '2022-12-10',
             number_of_adults   = 1,
             number_of_children = 1,
-            user_request       = '살려주세요.',
-            price              = 2000,
+            user_request       = '조용한 곳을 부탁드립니다.',
+            price              = 20000,
             user_id            = 1,
             booking_status_id  = 1,
             planet_id          = 1,
             accomodation_id    = 1
         )
 
-    def tearDown(self):
-        User.objects.all().delete()
-        Galaxy.objects.all().delete()
-        PlanetTheme.objects.all().delete()
-        Planet.objects.all().delete()
-        Accomodation.objects.all().delete()
-        BookingStatus.objects.all().delete()
-        Booking.objects.all().delete()
+        Booking.objects.create(
+            id                 = 2,
+            booking_number     = 495912305902135,
+            start_date         = '2022-10-10',
+            end_date           = '2022-10-15',
+            number_of_adults   = 1,
+            number_of_children = 1,
+            user_request       = '청소 부탁드려요.',
+            price              = 30000,
+            user_id            = 1,
+            booking_status_id  = 1,
+            planet_id          = 1,
+            accomodation_id    = 1
+        )
 
-    def test_success_bookingview_post(self):
-        token   = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client  = Client()
-        headers = {'HTTP_Authorization':token}
+        Booking.objects.create(
+            id                 = 3,
+            booking_number     = 11222444525,
+            start_date         = '2023-01-01',
+            end_date           = '2023-01-20',
+            number_of_adults   = 1,
+            number_of_children = 1,
+            user_request       = '새해맞이',
+            price              = 30000,
+            user_id            = 1,
+            booking_status_id  = 1,
+            planet_id          = 1,
+            accomodation_id    = 1
+        )
+
+    def test_success_booking_accomodation(self):
+        '''
+        Book New Accomodation
+        '''
         booking = {
             'booking_number'     : 1,
-            'start_date'         : '2022-03-22',
-            'end_date'           : '2022-03-23',
+            'start_date'         : '2023-01-22',
+            'end_date'           : '2023-01-25',
             'number-of-adults'   : 1,
             'number-of-children' : 1,
-            'user_request'       : '테스트',
+            'user_request'       : '깨끗하게 부탁드려요.',
             'total_price'        : 10000,
             'planet_id'          : 1,
             'accomodation_id'    : 1
         }
-        response = client.post(
-            '/bookings', 
-            json.dumps(booking), 
-            content_type='application/json', 
-            **headers
-        )
-        booking_number = Booking.objects.get(id=2).booking_number
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.json(), {
-            'result':{
-                'booking_id'     : 2,
-                'booking_number' : str(booking_number)
-            }
-        })
+        response = self.f_client.post(
+            '/api/bookings', json.dumps(booking), content_type='application/json')
 
-    def test_fail_bookingview_post_too_many_people(self):
-        token   = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client  = Client()
-        headers = {'HTTP_Authorization':token}
+        booking_number = response.json()['booking_number']
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            response.json(),
+            {   
+                'id' : 4,
+                'booking_number': booking_number,
+                'start_date': '2023-01-22',
+                'end_date': '2023-01-25',
+                'number_of_adults': 1,
+                'number_of_children': 1,
+                'user_request': '깨끗하게 부탁드려요.',
+                'accomodation_id': 1,
+                'booking_status_id': 1,
+                'planet_id': 1,
+                'price': '10000.00'
+            }
+        )
+
+    def test_success_booking_accomodation_list_with_filter_history(self):
+        '''
+        Get Booked Accomodation Information
+        '''
+        response = self.f_client.get('/api/bookings?my-stay=history')
+        
+        booking_number1 = str(Booking.objects.get(id=1).booking_number)
+        booking_number2 = str(Booking.objects.get(id=2).booking_number)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            [
+                {
+                    'id' : 1,
+                    'booking_number' : booking_number1,
+                    'start_date' : '2022-12-01',
+                    'end_date' : '2022-12-10',
+                    'number_of_adults': 1,
+                    'number_of_children': 1,
+                    'user_request': '조용한 곳을 부탁드립니다.',
+                    'price': '20000.00',
+                    'booking_status_id': 1,
+                    'accomodation_id': 1,
+                    'planet_id': 1,
+                },
+                {
+                    'id' : 2,
+                    'booking_number' : booking_number2,
+                    'start_date' : '2022-10-10',
+                    'end_date' : '2022-10-15',
+                    'number_of_adults': 1,
+                    'number_of_children': 1,
+                    'user_request': '청소 부탁드려요.',
+                    'price': '30000.00',
+                    'booking_status_id': 1,
+                    'accomodation_id': 1,
+                    'planet_id': 1,
+                }
+            ]
+        )
+    
+    def test_success_booking_accomodation_list_with_filter_booked(self):
+        response = self.f_client.get('/api/bookings?my-stay=booking-info')
+
+        booking_number = str(Booking.objects.get(id=3).booking_number)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            [
+                {
+                    'id' : 3,
+                    'booking_number' : booking_number,
+                    'start_date' : '2023-01-01',
+                    'end_date' : '2023-01-20',
+                    'number_of_adults': 1,
+                    'number_of_children': 1,
+                    'user_request': '새해맞이',
+                    'price': '30000.00',
+                    'booking_status_id': 1,
+                    'accomodation_id': 1,
+                    'planet_id': 1,
+                }
+            ]
+        )
+
+    def test_success_booking_accomodation_update(self):
+        '''
+        Update Booked Accomodation Information
+        '''
         booking = {
-            'start_date'         : '2022-03-22',
-            'end_date'           : '2022-03-23',
+            'start_date' : '2022-12-02',
+            'end_date' : '2022-12-10',
+            'number-of-adults' : 2
+        }
+
+        response = self.f_client.patch('/api/bookings/1', json.dumps(booking), content_type='application/json')
+    
+        booking_number = response.json()['booking_number']
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                'id' : 1,
+                'booking_number' : booking_number,
+                'start_date' : '2022-12-02',
+                'end_date' : '2022-12-10',
+                'number_of_adults': 2,
+                'number_of_children': 1,
+                'user_request': '조용한 곳을 부탁드립니다.',
+                'price': '20000.00',
+                'booking_status_id': 1,
+                'accomodation_id': 1,
+                'planet_id': 1,
+            }
+        )
+
+    def test_success_booking_accomodation_cancel(self):
+        '''
+        Cancel Booked Accomodation
+        '''
+        response = self.f_client.delete('/api/bookings?booking-ids=1')
+        
+        self.assertEqual(response.status_code, 204)
+
+    def test_fail_booking_accomodation_due_to_invalid_people(self):
+        '''
+        Book New Accomodation Fail
+        '''
+        booking = {
+            'start_date'         : '2023-03-22',
+            'end_date'           : '2023-03-23',
             'number-of-adults'   : 10,
             'number-of-children' : 1,
             'user_request'       : '테스트',
@@ -119,22 +270,20 @@ class BookingTest(TestCase):
             'planet_id'          : 1,
             'accomodation_id'    : 1
         }
-        response = client.post(
-            '/bookings', 
-            json.dumps(booking), 
-            content_type='application/json', 
-            **headers
-        )
+        response = self.f_client.post('/api/bookings', json.dumps(booking), content_type='application/json')
+        
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json(), {'message':'TOO_MANY_PEOPLE'})
+        self.assertEqual(
+            response.json(),
+            {
+                'message':'Invalid Num Of People'
+            }
+        )
 
-    def test_fail_bookingview_post_already_exists(self):
-        token   = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client  = Client()
-        headers = {'HTTP_Authorization':token}
+    def test_fail_booking_accomodation_due_to_already_booked(self):
         booking = {
-            'start_date'         : '2022-03-21',
-            'end_date'           : '2022-03-22',
+            'start_date'         : '2022-12-01',
+            'end_date'           : '2022-12-10',
             'number-of-adults'   : 1,
             'number-of-children' : 1,
             'user_request'       : '테스트',
@@ -142,87 +291,93 @@ class BookingTest(TestCase):
             'planet_id'          : 1,
             'accomodation_id'    : 1
         }
-        response = client.post(
-            '/bookings', 
-            json.dumps(booking), 
-            content_type='application/json', 
-            **headers
-        )
+        response = self.f_client.post('/api/bookings', json.dumps(booking), content_type='application/json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json(), {'message':'ALREADY_EXISTS'})
-
-    def test_success_bookingview_get(self):
-        token   = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client  = Client()
-        headers = {'HTTP_Authorization':token}
-        response = client.get(
-            '/bookings', 
-            **headers
+        self.assertEqual(
+            response.json(),
+            {
+                'message':'Already Booked Accomodation'
+            }
         )
-        booking_number = Booking.objects.get(id=1).booking_number
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {
-            'booking_list': [{
-                'booking_id'         : 1,
-                'booking_number'     : str(booking_number),
-                'start_date'         : '2022-03-20',
-                'end_date'           : '2022-03-22',
-                'number_of_adults'   : 1,
-                'number_of_children' : 1,
-                'user_request'       : '살려주세요.',
-                'price'              : '2000.00',
-                'booking_status'     : 'PENDING',
-                'planet_name'        : '가람별',
-                'accomodation_name'  : '가람의호텔'
-            }]
-        })
 
-    def test_success_bookingview_patch(self):
-        token   = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client  = Client()
-        headers = {'HTTP_Authorization':token}
+    def test_fail_booking_accomodation_due_to_invalid_accomodation(self):
         booking = {
-            'status' : 'pending'
+            'start_date'         : '2023-03-22',
+            'end_date'           : '2023-03-23',
+            'number-of-adults'   : 10,
+            'number-of-children' : 1,
+            'user_request'       : '테스트',
+            'total_price'        : 10000,
+            'planet_id'          : 1,
+            'accomodation_id'    : 200000
         }
-        response = client.patch(
-            '/bookings/1', 
-            json.dumps(booking), 
-            content_type='application/json', 
-            **headers
+        response = self.f_client.post('/api/bookings', json.dumps(booking), content_type='application/json')
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json(),
+            {
+                'message':'Invalid Accomodation'
+            }
         )
-        self.assertEqual(response.status_code, 200)
-
-    def test_fail_bookingview_patch_not_found(self):
-        token   = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client  = Client()
-        headers = {'HTTP_Authorization':token}
+    
+    def test_fail_booking_accomodation_due_to_invalid_request(self):
         booking = {
-            'status' : 'pending'
+            'accomodation_id'    : 1
         }
-        response = client.patch(
-            '/bookings/2', 
-            json.dumps(booking), 
-            content_type='application/json', 
-            **headers
+        response = self.f_client.post('/api/bookings', json.dumps(booking), content_type='application/json')
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json(),
+            {
+                'message':'Invalid Request'
+            }
         )
-        self.assertEqual(response.status_code, 404)
+    
+    def test_fail_booking_accomodation_list_due_to_invalid_filter(self):
+        '''
+        Get Booked Accomodation Information Fail
+        '''
+        response = self.f_client.get('/api/bookings')
 
-    def test_success_bookingview_delete(self):
-        token   = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client  = Client()
-        headers = {'HTTP_Authorization':token}
-        response = client.delete(
-            '/bookings?booking-ids=1',
-            **headers
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json(),
+            {
+                'message': 'Invalid Filter'
+            }
         )
-        self.assertEqual(response.status_code, 200)
 
-    def test_fail_bookingview_delete_not_found(self):
-        token   = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client  = Client()
-        headers = {'HTTP_Authorization':token}
-        response = client.delete(
-            '/bookings?booking-ids=2',
-            **headers
-        )
+    def test_fail_booking_accomodation_update_due_to_invalid_id(self):
+        '''
+        Update Booked Accomodation Information Fail
+        '''
+        booking = {
+            'start_date' : '2022-12-02',
+            'end_date' : '2022-12-10'
+        }
+
+        response = self.f_client.patch('/api/bookings/200', json.dumps(booking), content_type='application/json')
+        
         self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            response.json(),
+            {
+                'message':'Invalid Booking Information'
+            }
+        )
+
+    def test_fail_booking_accomodation_cancel_due_to_invalid_ids(self):
+        '''
+        Cancel Booked Accomodation Fail
+        '''
+        response = self.f_client.delete('/api/bookings?booking-ids=10&booking-ids=5&booking-ids=6')
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json(),
+            {
+                'message':'Invalid Booking Information'
+            }
+        )
