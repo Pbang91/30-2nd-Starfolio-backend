@@ -1,44 +1,59 @@
+import json
+from datetime import datetime, timedelta
+
+import bcrypt
 import jwt
 
-from django.test import TestCase, Client
+from rest_framework.test import APITestCase, APIClient
 
-from my_settings      import SECRET_KEY, ALGORITHM
-from planets.models   import Galaxy, PlanetTheme, Planet, Accomodation
+from users.models import User
+from planets.models import Galaxy, PlanetTheme, Planet, Accomodation
 from wishlists.models import WishList
-from users.models     import User
+from starfolio.settings import SECRET_KEY, ALGORITHM
 
-class WishListTest(TestCase):
+class WishListTest(APITestCase):
+    maxDiff = None
+    
     @classmethod
     def setUpTestData(cls):
-        User.objects.create(
+        password = bcrypt.hashpw("test1234!".encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
+
+        cls.user = User.objects.create(
             id       = 1,
-            name     = '가람',
-            email    = 'kimkrh@naver.com',
-            kakao_id = 1234
+            name     = 'testman',
+            password = password,
+            email    = 'test@test.com',
+            kakao_id = 1234567891111
         )
+
+        cls.f_client = APIClient()
+
+        token = jwt.encode({'id' : cls.user.id, 'exp' : datetime.utcnow() + timedelta(days=2)}, SECRET_KEY, ALGORITHM)
+
+        cls.f_client.credentials(HTTP_AUTHORIZATION=token)
 
         Galaxy.objects.create(
             id   = 1,
-            name = '가람우주'
+            name = '우리은하'
         )
 
         PlanetTheme.objects.create(
             id   = 1,
-            name = '무한테스트'
+            name = '불'
         )
 
         Planet.objects.bulk_create([
             Planet(
                 id        = 1,
-                name      = '가람별',
-                thumbnail = 'http://urls',
+                name      = '멋진행성',
+                thumbnail = 'https://wonderful.img/test1.jpg',
                 theme_id  = 1,
                 galaxy_id = 1
             ),
             Planet(
                 id        = 2,
-                name      = '가람별2',
-                thumbnail = 'http://urls2',
+                name      = '이쁜행성',
+                thumbnail = 'https://beautiful.img/test1.jpg',
                 theme_id  = 1,
                 galaxy_id = 1
             )
@@ -46,7 +61,7 @@ class WishListTest(TestCase):
 
         Accomodation.objects.create(
             id            = 1,
-            name          = '가람의호텔',
+            name          = '멋진숙소',
             price         = 100000.00,
             min_of_people = 2,
             max_of_people = 4,
@@ -61,64 +76,110 @@ class WishListTest(TestCase):
             planet_id = 1
         )
 
-    def tearDown(self):
-        User.objects.all().delete()
-        Galaxy.objects.all().delete()
-        PlanetTheme.objects.all().delete()
-        Planet.objects.all().delete()
-        Accomodation.objects.all().delete()
+    def test_success_wishlist_create(self):
+        '''
+        장바구니 저장
+        '''
+        data = {'planet_id' : 2}
+        
+        response = self.f_client.post('/api/wishlists', data=json.dumps(data), content_type='application/json')
 
-    def test_success_wishlistview_post_create(self):
-        token    = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client   = Client()
-        headers  = {'HTTP_Authorization':token}
-        response = client.post(
-            '/wishlists/2',
-            **headers
-        )
+        created_at = response.json()['created_at']
+
         self.assertEqual(response.status_code, 201)
-
-    def test_success_wishlistview_post_delete(self):
-        token    = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client   = Client()
-        headers  = {'HTTP_Authorization':token}
-        response = client.post(
-            '/wishlists/1',
-            **headers
+        self.assertEqual(
+            response.json(),
+            {
+                'id' : 2,
+                'user' : 1,
+                'planet' : {
+                    'id' : 2,
+                    'name' : '이쁜행성',
+                    'thumbnail' : 'https://beautiful.img/test1.jpg',
+                    'theme' : {
+                        'name' : '불'
+                    },
+                    'galaxy' : {
+                        'name' : '우리은하'
+                    },
+                    'planetimage_set' : [],
+                    'accomodation_set' : []
+                },
+                'created_at' : created_at
+            }
         )
+
+    def test_success_wishlist_exist_wish_view(self):
+        '''
+        장바구니 보기
+        '''
+        response = self.f_client.get('/api/wishlists')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            [
+                {
+                    'id' : 1,
+                    'planet' : {
+                        'id' : 1,
+                        'name' : '멋진행성',
+                        'thumbnail' : 'https://wonderful.img/test1.jpg',
+                        'galaxy' : {
+                            'name' : '우리은하'
+                        },
+                        'theme' : {
+                            'name' : '불'
+                        },
+                        'planetimage_set' : [],
+                        'accomodation_set' : [
+                            {
+                                'min_of_people' : 2,
+                                'max_of_people' : 4,
+                                'price' : '100000.00'
+                            }
+                        ]
+                    }
+                }
+            ]
+        )
+    
+    def test_success_wishlist_non_exist_wish_view(self):
+        WishList.objects.all().delete()
+        
+        response = self.f_client.get('/api/wishlists')
+
         self.assertEqual(response.status_code, 204)
 
-    def test_success_wishlistview_get(self):
-        token    = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client   = Client()
-        headers  = {'HTTP_Authorization':token}
-        response = client.get(
-            '/wishlists',
-            **headers
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {
-            'wishlist_lists':[{
-                'wishlist_id'       : 1,
-                'planet_id'         : 1,
-                'planet_name'       : '가람별',
-                'planet_thumbnail'  : 'http://urls',
-                'galaxy_name'       : '가람우주',
-                'theme_name'        : '무한테스트',
-                'accomodation_info' : [{
-                    'min_of_people' : 2,
-                    'max_of_people' : 4,
-                    'price'         : '100000.00'
-                }]
-            }]
-        })
 
-    def test_fail_wishlistview_post_not_found(self):
-        token    = jwt.encode({'id':1}, SECRET_KEY, ALGORITHM)
-        client   = Client()
-        headers  = {'HTTP_Authorization':token}
-        response = client.post(
-            '/wishlists/3',
-            **headers
+    def test_fail_wishlist_create_due_to_invlid_planet(self):
+        data = {
+            'planet_id' : 555
+        }
+
+        response = self.f_client.post('/api/wishlists', data=json.dumps(data), content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json(),
+            {
+                'message':'Inavlid Planet'
+            }
         )
-        self.assertEqual(response.status_code, 404)
+
+    def test_fail_wishlist_create_due_to_invlid_request(self):
+        data = {
+            "planet_idddddd" : 2
+        }
+
+        response = self.f_client.post('/api/wishlists', data=json.dumps(data), content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json(),
+            {
+                'message':'Inavlid Required Value'
+            }
+        )
+
+    

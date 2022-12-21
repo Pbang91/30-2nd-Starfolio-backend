@@ -1,30 +1,40 @@
+
+from pprint import pprint
+
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
 from django.http  import JsonResponse
-from django.views import View
 
 from users.utils      import login_decorator
 from planets.models   import Planet
 from wishlists.models import WishList
 
-class WishListView(View):
+from .serializers import WishListSerializer, WishListDetailSerializer
+
+class WishListView(APIView):
     @login_decorator
-    def post(self, request, planet_id):
+    def post(self, request):
         try:
-            user      = request.user
-            planet    = Planet.objects.get(id=planet_id)
+            user = request.user
+            data = {
+                'user'   : user.id,
+                'planet' : request.data['planet_id']
+            }
 
-            wishlist, is_created = WishList.objects.get_or_create(
-                user   = user,
-                planet = planet
-            )
+            serializer = WishListSerializer(data=data)
+            
+            if serializer.is_valid():
+                serializer.save()
 
-            if not is_created:
-                wishlist.delete()
-                return JsonResponse({'message':'DELETED'}, status=204)
-
-            return JsonResponse({'message':'CREATED'}, status=201)
-
-        except Planet.DoesNotExist:
-            return JsonResponse({'message':'NOT_FOUND'}, status=404)
+                return Response(data=serializer.data, status=status.HTTP_201_CREATED, content_type="application/json")
+            
+            else:
+                return JsonResponse({'message':'Inavlid Planet'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        except KeyError:
+            return JsonResponse({'message':'Inavlid Required Value'}, status=status.HTTP_400_BAD_REQUEST)
     
     @login_decorator
     def get(self, request):
@@ -32,21 +42,11 @@ class WishListView(View):
         offset = int(request.GET.get('offset', 0))
         user   = request.user
 
-        wishlists = WishList.objects.filter(user=user)\
-                    .select_related('planet')[offset:offset+limit]
+        wishlists = WishList.objects.filter(user=user).select_related('planet')[offset:offset+limit]
 
-        wishlist_lists = [{
-            'wishlist_id'       : wishlist.id,
-            'planet_id'         : wishlist.planet.id,
-            'planet_name'       : wishlist.planet.name,
-            'planet_thumbnail'  : wishlist.planet.thumbnail,
-            'galaxy_name'       : wishlist.planet.galaxy.name,
-            'theme_name'        : wishlist.planet.theme.name,
-            'accomodation_info' : [{
-                'min_of_people' : accomodation.min_of_people,
-                'max_of_people' : accomodation.max_of_people,
-                'price'         : accomodation.price,
-            } for accomodation in wishlist.planet.accomodation_set.all()]
-        } for wishlist in wishlists]
+        if not wishlists:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
-        return JsonResponse({'wishlist_lists':wishlist_lists}, status=200)
+        serializer = WishListDetailSerializer(wishlists, many=True)
+
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
