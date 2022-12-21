@@ -155,6 +155,9 @@ class WishListTest(APITestCase):
         self.assertEqual(response.status_code, 204)
 
     def test_fail_wishlist_create_due_to_Unauthorized_user(self):
+        '''
+        인가되지 않은 유저 장바구니 담기
+        '''
         data = {'planet_id' : 2}
         
         response = self.client.post('/api/wishlists', data=json.dumps(data), content_type="application/json")
@@ -168,6 +171,9 @@ class WishListTest(APITestCase):
         )
 
     def test_fail_wishlist_create_due_to_invlid_planet(self):
+        '''
+        유효하지 않은 request로 장바구니 담기
+        '''
         data = {
             'planet_id' : 555
         }
@@ -183,6 +189,9 @@ class WishListTest(APITestCase):
         )
 
     def test_fail_wishlist_create_due_to_invlid_request(self):
+        '''
+        잘못된 request로 장바구니 담기
+        '''
         data = {
             "planet_idddddd" : 2
         }
