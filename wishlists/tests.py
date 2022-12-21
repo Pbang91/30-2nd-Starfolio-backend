@@ -111,7 +111,7 @@ class WishListTest(APITestCase):
 
     def test_success_wishlist_exist_wish_view(self):
         '''
-        장바구니 보기
+        담긴 장바구니 보기
         '''
         response = self.f_client.get('/api/wishlists')
         
@@ -145,12 +145,27 @@ class WishListTest(APITestCase):
         )
     
     def test_success_wishlist_non_exist_wish_view(self):
+        '''
+        안담긴 장바구니 보기
+        '''
         WishList.objects.all().delete()
         
         response = self.f_client.get('/api/wishlists')
 
         self.assertEqual(response.status_code, 204)
 
+    def test_fail_wishlist_create_due_to_Unauthorized_user(self):
+        data = {'planet_id' : 2}
+        
+        response = self.client.post('/api/wishlists', data=json.dumps(data), content_type="application/json")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.json(),
+            {
+                "message" : "Unauthorized User"
+            }
+        )
 
     def test_fail_wishlist_create_due_to_invlid_planet(self):
         data = {
@@ -181,5 +196,3 @@ class WishListTest(APITestCase):
                 'message':'Inavlid Required Value'
             }
         )
-
-    
