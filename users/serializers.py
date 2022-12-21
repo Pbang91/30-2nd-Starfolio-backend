@@ -7,6 +7,11 @@ from starfolio.settings import SECRET_KEY, ALGORITHM
 
 from .models import User
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = "__all__"
+
 class KakaoLogInSerializer(serializers.Serializer):
     name          = serializers.CharField()
     email         = serializers.EmailField()
@@ -15,7 +20,6 @@ class KakaoLogInSerializer(serializers.Serializer):
 
     def update(self, instance : User, validated_data):
         instance.refresh_token = validated_data.get('refresh_token')
-        #instance.save() 가 안됨
         return instance
     
     def get_access_token(self, obj):

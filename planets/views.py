@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from planets.models import Planet, Accomodation
 
 from .utils import check_valid_date
-from .serializer import PlanetSerializer, PlanetDetailSerializer
+from .serializers import PlanetSerializer, PlanetDetailSerializer
 
 class PlanetsView(APIView):
     def get(self, request):

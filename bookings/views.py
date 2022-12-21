@@ -15,7 +15,7 @@ from planets.models import Accomodation
 from bookings.models import Booking
 
 from .utils import check_validation_request
-from .serializer import BookingSerializer
+from .serializers import BookingSerializer
 
 class BookingStatusEnum(Enum):
     PENDING   = 1

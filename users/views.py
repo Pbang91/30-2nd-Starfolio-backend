@@ -16,7 +16,7 @@ from users.models import User
 from starfolio.settings import SECRET_KEY, ALGORITHM
 
 from .utils import login_decorator
-from .serializer import KakaoLogInSerializer, RenewalingTokenSerializer, LogOutSerializer
+from .serializers import KakaoLogInSerializer, RenewalingTokenSerializer, LogOutSerializer
 
 class KakaoLogInView(APIView):
     permission_classes = [AllowAny]
