@@ -22,3 +22,9 @@ class WishListDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = WishList
         fields = ('id', 'planet')
+
+class WishSerializer(serializers.Serializer):
+    '''
+    Wishlist 스키마 시리얼라이저[only used for swagger]
+    '''
+    planet_id = serializers.IntegerField()

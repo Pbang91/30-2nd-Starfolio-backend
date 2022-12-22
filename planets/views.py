@@ -8,12 +8,21 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from drf_yasg.utils import swagger_auto_schema
+
 from planets.models import Planet, Accomodation
 
 from .utils import check_valid_date
+from .swagger import PlanetSwaager
 from .serializers import PlanetSerializer, PlanetDetailSerializer
 
 class PlanetsView(APIView):
+    @swagger_auto_schema(manual_parameters=[PlanetSwaager.check_in,
+                                            PlanetSwaager.check_out,
+                                            PlanetSwaager.sort,
+                                            PlanetSwaager.limit,
+                                            PlanetSwaager.offset],
+                         responses={200 : PlanetSerializer, 400 : "Invalid Reason Message"}, tags=["Planet"])
     def get(self, request):
         check_in  = request.GET.get('check-in')
         check_out = request.GET.get('check-out')
@@ -63,6 +72,11 @@ class PlanetsView(APIView):
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 class PlanetDetailView(APIView):
+    @swagger_auto_schema(manual_parameters=[PlanetSwaager.check_in,
+                                            PlanetSwaager.check_out,
+                                            PlanetSwaager.planet_id,
+                                            PlanetSwaager.accomodation_id],
+                         responses={200 : PlanetDetailSerializer, 400 : "Invalid Reason Message"}, tags=["Planet"])
     def get(self, request, planet_id, accomodation_id):
         try:
             check_in  = request.GET.get('check-in')
