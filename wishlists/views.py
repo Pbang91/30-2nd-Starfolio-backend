@@ -1,19 +1,19 @@
-
-from pprint import pprint
+from django.http import JsonResponse
 
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from django.http  import JsonResponse
+from drf_yasg.utils import swagger_auto_schema
 
-from users.utils      import login_decorator
-from planets.models   import Planet
+from users.utils import login_decorator
 from wishlists.models import WishList
 
-from .serializers import WishListSerializer, WishListDetailSerializer
+from .swaager import WishListSwaager
+from .serializers import WishListSerializer, WishListDetailSerializer, WishSerializer
 
 class WishListView(APIView):
+    @swagger_auto_schema(request_body=WishSerializer, responses={201 : WishListSerializer, 400 : "Invalid Reason Message"}, tags=["WishList"])
     @login_decorator
     def post(self, request):
         try:
@@ -36,6 +36,8 @@ class WishListView(APIView):
         except KeyError:
             return JsonResponse({'message':'Inavlid Required Value'}, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(manual_parameters=[WishListSwaager.limit, WishListSwaager.offset],
+                         responses={201 : WishListSerializer, 400 : "Invalid Reason Message"}, tags=["WishList"])
     @login_decorator
     def get(self, request):
         limit  = int(request.GET.get('limit', 3))

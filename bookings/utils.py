@@ -9,8 +9,8 @@ def check_validation_request(request_data):
 
     accomodation = Accomodation.objects.get(id=request_data['accomodation_id'])
     
-    number_of_adults   = request_data.get('number-of-adults', 1)
-    number_of_children = request_data.get('number-of-children', 0)
+    number_of_adults   = request_data.get('number_of_adults', 1)
+    number_of_children = request_data.get('number_of_children', 0)
     num_of_people      = number_of_adults+number_of_children
     
     total_price      = Decimal(request_data.get('total_price', 0))

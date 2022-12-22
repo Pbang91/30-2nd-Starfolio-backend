@@ -1,5 +1,6 @@
-import jwt
 from datetime import datetime, timedelta
+
+import jwt
 
 from rest_framework import serializers
 

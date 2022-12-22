@@ -2,20 +2,23 @@ import uuid
 from enum import Enum
 from datetime import datetime, timedelta
 
+from django.http import JsonResponse
+from django.db.models import Q
+from django.core.exceptions import ValidationError
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from django.http import JsonResponse
-from django.db.models import Q
-from django.core.exceptions import ValidationError
+from drf_yasg.utils import swagger_auto_schema
 
 from users.utils import login_decorator
 from planets.models import Accomodation
 from bookings.models import Booking
 
 from .utils import check_validation_request
-from .serializers import BookingSerializer
+from .swagger import BookingSwaager
+from .serializers import BookingSerializer, BookingPostSchemaSerializer, BookingUpdateSchemaSerializer
 
 class BookingStatusEnum(Enum):
     PENDING   = 1
@@ -24,6 +27,9 @@ class BookingStatusEnum(Enum):
     CANCELLED = 4
 
 class BookingView(APIView):
+    @swagger_auto_schema(manual_parameters=[BookingSwaager.my_stay, BookingSwaager.limit, BookingSwaager.offset],
+                         responses={200 : BookingSerializer, 400 : "Invalid Reason Message"}, tags=["Booking"]
+    )
     @login_decorator
     def get(self, request):
         try:
@@ -55,6 +61,7 @@ class BookingView(APIView):
         except ValidationError as e:
             return JsonResponse({'message' : e.message}, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(request_body=BookingPostSchemaSerializer, responses={201 : BookingSerializer, 400 : "Invalid Reason Message"}, tags=["Booking"])
     @login_decorator
     def post(self, request):
         try:
@@ -90,13 +97,13 @@ class BookingView(APIView):
             }
             
             serializer = BookingSerializer(data=save_data)
-
+            print("통과")
             if serializer.is_valid():
                 serializer.save()
 
                 return Response(data=serializer.data, status=status.HTTP_201_CREATED)
             
-            elif not serializer.is_valid():
+            else:
                 raise ValidationError(serializer.errors)
         
         except Accomodation.DoesNotExist:
@@ -108,6 +115,26 @@ class BookingView(APIView):
         except KeyError:
             return JsonResponse({'message':'Invalid Request'}, status=status.HTTP_400_BAD_REQUEST)
 
+    @swagger_auto_schema(manual_parameters=[BookingSwaager.booking_id], responses={204 : "No Content", 400 : 'Invalid Booking Information'}, tags=["Booking"])
+    @login_decorator
+    def delete(self, request):
+        user        = request.user
+        booking_ids = request.GET.getlist('booking-ids')
+        bookings    = Booking.objects.filter(user=user, id__in=booking_ids)
+            
+        if not bookings:
+            return JsonResponse({'message':'Invalid Booking Information'}, status=status.HTTP_400_BAD_REQUEST)
+
+        bookings.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+        
+class BookingDetailView(APIView):
+    @swagger_auto_schema(manual_parameters=[BookingSwaager.booking_id],
+                         request_body=BookingUpdateSchemaSerializer,
+                         responses={200 : BookingSerializer, 400 : "Invalid Reason Message", 404 : 'Invalid Booking Information'},
+                         tags=["Booking"]
+    )
     @login_decorator
     #TODO 추후 관리자페이지에서 status 업데이트 진행
     def patch(self, request, booking_id):
@@ -124,8 +151,8 @@ class BookingView(APIView):
             booking = Booking.objects.get(user=user, id=booking_id)
             
             data['accomodation_id']    = booking.accomodation.id
-            data['number-of-adults']   = data.get('number-of-adults', booking.number_of_adults)
-            data['number-of-children'] = data.get('number-of-children', booking.number_of_children)
+            data['number_of_adults']   = data.get('number_of_adults', booking.number_of_adults)
+            data['number_of_children'] = data.get('number_of_children', booking.number_of_children)
 
             data = check_validation_request(request_data=data)
 
@@ -140,18 +167,4 @@ class BookingView(APIView):
             return JsonResponse({'message':'Invalid Booking Information'}, status=status.HTTP_404_NOT_FOUND)
 
         except KeyError:
-            return JsonResponse({'message':'Invalid Request Value'}, status=400)
-
-    @login_decorator
-    def delete(self, request):
-        user        = request.user
-        booking_ids = request.GET.getlist('booking-ids')
-        bookings    = Booking.objects.filter(user=user, id__in=booking_ids)
-            
-        if not bookings:
-            return JsonResponse({'message':'Invalid Booking Information'}, status=status.HTTP_400_BAD_REQUEST)
-
-        bookings.delete()
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
-        
+            return JsonResponse({'message':'Invalid Request Value'}, status=status.HTTP_400_BAD_REQUEST)

@@ -119,15 +119,15 @@ class BookingTest(APITestCase):
             'booking_number'     : 1,
             'start_date'         : '2023-01-22',
             'end_date'           : '2023-01-25',
-            'number-of-adults'   : 1,
-            'number-of-children' : 1,
+            'number_of_adults'   : 1,
+            'number_of_children' : 1,
             'user_request'       : '깨끗하게 부탁드려요.',
             'total_price'        : 10000,
             'planet_id'          : 1,
             'accomodation_id'    : 1
         }
-        response = self.f_client.post(
-            '/api/bookings', json.dumps(booking), content_type='application/json')
+
+        response = self.f_client.post('/api/bookings', json.dumps(booking), content_type='application/json')
 
         booking_number = response.json()['booking_number']
 
@@ -223,7 +223,7 @@ class BookingTest(APITestCase):
         booking = {
             'start_date' : '2022-12-02',
             'end_date' : '2022-12-10',
-            'number-of-adults' : 2
+            'number_of_adults' : 2
         }
 
         response = self.f_client.patch('/api/bookings/1', json.dumps(booking), content_type='application/json')
@@ -255,6 +255,33 @@ class BookingTest(APITestCase):
         response = self.f_client.delete('/api/bookings?booking-ids=1')
         
         self.assertEqual(response.status_code, 204)
+    
+    '''
+    아래 테스트 코드는 저장 직전 DB확인을 위한 테스트 코드. serializer와 물려 있기때문에
+    한 개가 주석처리되어 있으면, 다른 한개도 주석처리되어야 함
+    '''
+    # def test_fail_bookin_accomodation_due_to_already_booked_other_people(self):
+    #     booking = {
+    #         'booking_number'     : 1,
+    #         'start_date'         : '2023-05-22',
+    #         'end_date'           : '2023-05-25',
+    #         'number_of_adults'   : 1,
+    #         'number_of_children' : 1,
+    #         'user_request'       : '깨끗하게 부탁드려요.',
+    #         'total_price'        : 10000,
+    #         'planet_id'          : 1,
+    #         'accomodation_id'    : 1
+    #     }
+
+    #     response = self.f_client.post('/api/bookings', json.dumps(booking), content_type='application/json')
+
+    #     self.assertEqual(response.status_code, 400)
+    #     self.assertEqual(
+    #         response.json(),
+    #         {
+    #             'message':'Already Booked Accomodation'
+    #         }
+    #     )
 
     def test_fail_booking_accomodation_due_to_invalid_people(self):
         '''
@@ -263,8 +290,8 @@ class BookingTest(APITestCase):
         booking = {
             'start_date'         : '2023-03-22',
             'end_date'           : '2023-03-23',
-            'number-of-adults'   : 10,
-            'number-of-children' : 1,
+            'number_of_adults'   : 10,
+            'number_of_children' : 1,
             'user_request'       : '테스트',
             'total_price'        : 10000,
             'planet_id'          : 1,
@@ -284,8 +311,8 @@ class BookingTest(APITestCase):
         booking = {
             'start_date'         : '2022-12-01',
             'end_date'           : '2022-12-10',
-            'number-of-adults'   : 1,
-            'number-of-children' : 1,
+            'number_of_adults'   : 1,
+            'number_of_children' : 1,
             'user_request'       : '테스트',
             'total_price'        : 10000,
             'planet_id'          : 1,
@@ -304,8 +331,8 @@ class BookingTest(APITestCase):
         booking = {
             'start_date'         : '2023-03-22',
             'end_date'           : '2023-03-23',
-            'number-of-adults'   : 10,
-            'number-of-children' : 1,
+            'number_of_adults'   : 10,
+            'number_of_children' : 1,
             'user_request'       : '테스트',
             'total_price'        : 10000,
             'planet_id'          : 1,
