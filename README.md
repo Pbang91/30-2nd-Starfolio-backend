@@ -2,6 +2,7 @@
 
 ![transparency](https://user-images.githubusercontent.com/57164712/160241939-35ffe254-c193-40c3-b405-3bd1eb31d25a.png)
 
+DRF를 적용한 Refactoring을 진행했습니다.
 ---
 # 참고 사이트
 
@@ -69,6 +70,7 @@
   * #### BACKEND
     <a href="#"><img src="https://img.shields.io/badge/python-3873A9?style=plastic&logo=python&logoColor=white"/></a>
     <a href="#"><img src="https://img.shields.io/badge/Django-0B4B33?style=plastic&logo=django&logoColor=white"/></a>
+    <a href="#"><img src="https://img.shields.io/badge/Django Rest Framework-ED1C24?style=plastic&logo=django&logoColor=white">
     <a href="#"><img src="https://img.shields.io/badge/MySQL-005E85?style=plastic&logo=mysql&logoColor=white"/></a>
     <a href="#"><img src="https://img.shields.io/badge/AWS-FF9701?style=plastic&logo=aws&logoColor=white"/></a>
     <a href="#"><img src="https://img.shields.io/badge/docker-0040FF?style=plastic&logo=docker&logoColor=white"/></a>
