@@ -9,7 +9,7 @@ from drf_yasg.utils import swagger_auto_schema
 from users.utils import login_decorator
 from wishlists.models import WishList
 
-from .swaager import WishListSwaager
+from .swagger import WishListSwaager
 from .serializers import WishListSerializer, WishListDetailSerializer, WishSerializer
 
 class WishListView(APIView):
