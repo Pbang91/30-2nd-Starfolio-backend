@@ -97,7 +97,7 @@ class BookingView(APIView):
             }
             
             serializer = BookingSerializer(data=save_data)
-            print("통과")
+            
             if serializer.is_valid():
                 serializer.save()
 
